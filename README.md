@@ -50,7 +50,8 @@ From a WSL shell:
 ```bash
 wsl -d Ubuntu-22.04            # or: wsl -d Ubuntu-22.04 -u aidyn
 cd /mnt/c/Robotics
-./scripts/build-all.sh          # rebuild everything
+bash scripts/build-all.sh       # rebuild everything
+# (use `bash` — the exec bit is not preserved on /mnt/c DrvFs)
 ```
 
 Individual targets:
@@ -111,13 +112,15 @@ ros2 topic list
 - **ROS 2 examples** must be built *after* sourcing
   `unitree_ros2/cyclonedds_ws/install/setup.bash`, otherwise `find_package(unitree_go)` fails.
 - Builds happen on `/mnt/c` (DrvFs) — functional but slower than the Linux filesystem.
+- `unitree_sdk2_rs/build.rs` regenerates `gen/gen_topics.inc` on every build, which shows
+  the submodule as dirty; `git -C unitree_sdk2_rs checkout -- gen/gen_topics.inc` resets it.
 - WSL user password is `unitree`; change it with `passwd` inside WSL.
 
 ## Updating upstream code
 
 ```bash
 git submodule update --remote --merge    # pull latest for all SDKs
-./scripts/build-all.sh
+bash scripts/build-all.sh
 ```
 
 ## Provisioning
