@@ -1,0 +1,18 @@
+[submodule "unitree_sdk2"]
+	path = unitree_sdk2
+	url = https://github.com/unitreerobotics/unitree_sdk2.git
+[submodule "unitree_sdk2_python"]
+	path = unitree_sdk2_python
+	url = https://github.com/unitreerobotics/unitree_sdk2_python.git
+[submodule "unitree_sdk2_rs"]
+	path = unitree_sdk2_rs
+	url = https://github.com/unitreerobotics/unitree_sdk2_rs.git
+[submodule "unitree_legged_sdk"]
+	path = unitree_legged_sdk
+	url = https://github.com/unitreerobotics/unitree_legged_sdk.git
+[submodule "unitree_ros"]
+	path = unitree_ros
+	url = https://github.com/unitreerobotics/unitree_ros.git
+[submodule "unitree_ros2"]
+	path = unitree_ros2
+	url = https://github.com/unitreerobotics/unitree_ros2.git
