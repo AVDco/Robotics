@@ -14,6 +14,7 @@ setup/build tooling for this machine.
 | `unitree_legged_sdk/` | [unitree_legged_sdk](https://github.com/unitreerobotics/unitree_legged_sdk) | Legacy SDK (branch `go1`), UDP based |
 | `unitree_ros/` | [unitree_ros](https://github.com/unitreerobotics/unitree_ros) | ROS 1 models, Gazebo sim, controllers |
 | `unitree_ros2/` | [unitree_ros2](https://github.com/unitreerobotics/unitree_ros2) | ROS 2 (`unitree_go`, `unitree_api`, `unitree_hg`) + examples |
+| `Astro_dog/` | [Astro_dog](https://github.com/mr2urboclaude-ops/Astro_dog) | Robot application stack: voice commander, LiDAR follow, vision/face ID, dock services |
 
 ## Environment
 

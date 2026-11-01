@@ -16,3 +16,6 @@
 [submodule "unitree_ros2"]
 	path = unitree_ros2
 	url = https://github.com/unitreerobotics/unitree_ros2.git
+[submodule "Astro_dog"]
+	path = Astro_dog
+	url = https://github.com/mr2urboclaude-ops/Astro_dog.git
