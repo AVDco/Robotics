@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "unitree-robot": {
+      "source": "looperrobotics/openclaw-robotics",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "c60cfd03535a2fb4bf4fb78481acaae4dafc02ebb7561fcf8d3c6b3ff3a7fb3f"
+    },
+    "web-search": {
+      "source": "101-skills/superpowers",
+      "sourceType": "github",
+      "skillPath": "tools/llm/web-search/SKILL.md",
+      "computedHash": "acb021df44d30dbcbd8b517dc2edffcc121c53ae485a136f59b1dbc71306f674"
+    }
+  }
+}

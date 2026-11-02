@@ -6,19 +6,20 @@
 #
 #   Windows  usbipd-win  ->  USB/IP  ->  WSL2 vhci-hcd  ->  /dev/videoN
 #
-# One-time prerequisite (elevated PowerShell, run once):
-#   usbipd bind --busid 1-6
+# Prerequisite (elevated PowerShell; use the D455 busid from usbipd list):
+#   usbipd bind --busid 1-18
+# Rebinding may be required after moving the camera to a different port.
 #
 # After that, re-attaching after a reboot / unplug does NOT need admin:
 #   bash scripts/realsense-wsl.sh
 #
 # Usage:
-#   bash scripts/realsense-wsl.sh [busid]     # default 1-6
+#   bash scripts/realsense-wsl.sh [busid]     # default: discover the single D455
 #
 # Run this from INSIDE WSL. Nothing on the robot is touched.
 set -uo pipefail
 
-BUSID="${1:-1-6}"
+BUSID="${1:-}"
 USBIPD="/mnt/c/Program Files/usbipd-win/usbipd.exe"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
@@ -28,28 +29,68 @@ if [ ! -x "$USBIPD" ]; then
   exit 1
 fi
 
-# librealsense talks to /dev/bus/usb directly, so the node has to be readable
-# by the login user. Intel's own rules use MODE 0666 for their PIDs; without a
-# rule the node is root-owned and pyrealsense2 fails with "permission denied".
+# The PyPI wheel uses V4L2 as well as raw USB. Grant access to this D455's
+# video/HID nodes too; USB permissions alone leave enumeration silently empty.
+# Match the product as well as vendor so unrelated Intel devices are untouched.
 install_udev() {
   local rules=/etc/udev/rules.d/99-realsense-libusb.rules
-  [ -f "$rules" ] && return 0
-  echo "[realsense] installing udev rule $rules"
-  sudo tee "$rules" >/dev/null <<'EOF'
-# Intel RealSense -- librealsense needs raw USB access.
-SUBSYSTEM=="usb", ATTRS{idVendor}=="8086", MODE:="0666", GROUP:="plugdev"
+  local desired
+  desired="$(cat <<'EOF'
+# Managed by Robotics/scripts/realsense-wsl.sh: D455 only.
+SUBSYSTEM=="usb", ATTRS{idVendor}=="8086", ATTRS{idProduct}=="0b5c", MODE:="0666"
+SUBSYSTEM=="video4linux", ATTRS{idVendor}=="8086", ATTRS{idProduct}=="0b5c", MODE:="0666"
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="8086", ATTRS{idProduct}=="0b5c", MODE:="0666"
 EOF
-  sudo udevadm control --reload-rules 2>/dev/null || true
-  sudo udevadm trigger --subsystem-match=usb 2>/dev/null || true
+  )"
+  if ! cmp -s "$rules" <(printf '%s\n' "$desired"); then
+    echo "[realsense] updating udev rule $rules"
+    if [ -f "$rules" ] && [ ! -e "$rules.before-vision-access" ]; then
+      sudo cp -p "$rules" "$rules.before-vision-access" || return 1
+    fi
+    printf '%s\n' "$desired" | sudo tee "$rules" >/dev/null || return 1
+  else
+    return 0
+  fi
+  sudo udevadm control --reload-rules || return 1
+  # Apply to already-attached nodes; a reconnect will use the same rules.
+  local subsystem
+  for subsystem in usb video4linux hidraw; do
+    sudo udevadm trigger --action=add --subsystem-match="$subsystem" || return 1
+  done
+  sudo udevadm settle || return 1
 }
-install_udev
+install_udev || exit 1
 
 echo "[realsense] usbipd-win: $("$USBIPD" --version 2>/dev/null | head -1)"
 
-line="$("$USBIPD" list 2>/dev/null | grep -E "^[[:space:]]*${BUSID}[[:space:]]")"
+select_busid() {
+  local listing="$1"
+  local -a matches
+  mapfile -t matches < <(printf '%s\n' "$listing" | tr -d '\r' |
+    awk 'tolower($2) == "8086:0b5c" {print $1}')
+  case "${#matches[@]}" in
+    1) printf '%s\n' "${matches[0]}" ;;
+    0) echo "[realsense] no D455 (8086:0b5c) connected on Windows." >&2; return 1 ;;
+    *) echo "[realsense] multiple D455 devices; pass an explicit busid from usbipd list." >&2; return 1 ;;
+  esac
+}
+
+listing="$("$USBIPD" list)" || exit 1
+if [ -z "$BUSID" ]; then
+  BUSID="$(select_busid "$listing")" || exit 1
+fi
+if [[ ! "$BUSID" =~ ^[0-9]+-[0-9]+$ ]]; then
+  echo "[realsense] invalid busid: $BUSID" >&2
+  exit 1
+fi
+line="$(printf '%s\n' "$listing" | awk -v busid="$BUSID" '$1 == busid {print}')"
 if [ -z "$line" ]; then
   echo "[realsense] busid $BUSID not found. Current devices:"
   "$USBIPD" list
+  exit 1
+fi
+if ! printf '%s\n' "$line" | awk 'tolower($2) == "8086:0b5c" {found=1} END {exit !found}'; then
+  echo "[realsense] busid $BUSID is not a D455 (8086:0b5c); refusing to attach it." >&2
   exit 1
 fi
 echo "[realsense] device: $line"
@@ -91,9 +132,8 @@ echo
 echo "[realsense] by-id:"
 ls -l /dev/v4l/by-id/ 2>/dev/null | grep -i realsense || echo "  no RealSense by-id entries"
 
-# The node list is not proof: librealsense talks to /dev/bus/usb through its own
-# backend and a depth camera exposes several /dev/videoN nodes of which video0
-# is a depth node. Only pyrealsense2 can say whether a camera is really there.
+# The node list is not proof: a camera exposes depth, colour and metadata nodes.
+# Only SDK enumeration followed by a stream probe proves usable capture.
 PY="$ROOT/Astro_dog/vision/.venv/bin/python"
 echo
 if [ -x "$PY" ]; then
@@ -113,6 +153,10 @@ for d in devs:
     fw = d.get_info(rs.camera_info.firmware_version)
     usb = d.get_info(rs.camera_info.usb_type_descriptor)
     print(f"  {name}  sn={serial}  fw={fw}  usb={usb}")
+    if usb.startswith("2."):
+        print("  WARNING: USB 2 link; the default 1280x720@30 colour mode needs USB 3.")
+        print("  Use a SuperSpeed-capable cable and port, preferably directly on the laptop.")
+print("  Enumeration passed; verify frames with cam_record.py realsense --probe.")
 PY
 else
   echo "[realsense] $PY not built yet; run scripts/setup-vision.sh to verify"

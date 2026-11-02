@@ -53,7 +53,7 @@ RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 | GPU | NVIDIA RTX 5060 Laptop 8 GB (Blackwell, sm_120) + Intel iGPU |
 | Disk | WD SN7100S 1 TB |
 | OS | Windows 11 Home 26200 + WSL2 Ubuntu 22.04.5 |
-| Camera | **Intel RealSense D455** (`8086:0b5c`), USB 3.0 root hub port 6 |
+| Camera | **Intel RealSense D455** (`8086:0b5c`), USB 3.2, last seen at busid `1-18` |
 
 ### Camera — D455 into WSL2
 
@@ -62,17 +62,36 @@ WSL2 cannot see USB devices directly, so the D455 is forwarded with
 PowerShell:
 
 ```powershell
-& "C:\Program Files\usbipd-win\usbipd.exe" bind --busid 1-6
+& "C:\Program Files\usbipd-win\usbipd.exe" bind --busid 1-18
 ```
 
 After every reboot or re-plug (no admin needed), from WSL:
 
 ```bash
-bash scripts/realsense-wsl.sh      # attaches busid 1-6 and loads vhci-hcd
+bash scripts/realsense-wsl.sh      # discovers the single D455 and attaches it
 ```
 
-The busid is not stable across USB ports. If `1-6` stops resolving, run
-`usbipd list` on Windows and match on `8086:0b5c`.
+The busid is not stable across USB ports. The helper discovers it by
+`8086:0b5c`; if the new port is not shared, it prints the current elevated bind
+command. With multiple D455 devices, pass the intended busid explicitly:
+`bash scripts/realsense-wsl.sh 1-18`. Rebinding may be required after moving ports.
+
+The helper installs D455-only USB, video and HID permission rules. The PyPI
+wheel uses V4L2: allowing `/dev/bus/usb` alone is insufficient and can result
+in an empty device list. Existing rules are backed up before upgrading them.
+Offline helper regression tests: `python3 scripts/realsense-wsl-test.py`.
+
+**Live verification on LEGION_A (2026-11-01):** the reconnected camera negotiates
+**USB 3.2** (serial `234222300136`, firmware `5.13.0.55`). The installed PyPI
+wheel captures **298 colour frames in 10 seconds (29.8 fps), 1280x720, zero read
+failures**. The default vision app runs at about 29 fps with InsightFace on CUDA;
+its HTTP page responds from Windows and five MJPEG frames decode at 1280x720.
+The gallery on this laptop is empty: named recognition still needs enrollment.
+
+The earlier USB 2.1 connection did not expose 1280x720@30 and delivered no
+complete frames in tested lower-bandwidth modes, with either V4L2 or a separate
+RSUSB build. Reconnecting to USB 3 resolved capture; no kernel replacement,
+camera firmware update, or replacement of the PyPI wheel was needed.
 
 ### Vision default camera
 
@@ -90,7 +109,7 @@ cd /mnt/c/Robotics/Astro_dog/vision
 .venv/bin/python identity_live.py                 # http://localhost:8099/
 ```
 
-Build that venv from scratch (idempotent, ~6.7 GB) with:
+Build that venv from scratch (from the workspace root; idempotent, ~6.7 GB) with:
 
 ```bash
 bash scripts/setup-vision.sh
