@@ -44,6 +44,64 @@ LD_LIBRARY_PATH=/opt/cyclonedds/lib:/opt/unitree_robotics/lib
 RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 ```
 
+## This laptop — LEGION_A
+
+| | |
+|---|---|
+| Machine | Lenovo Legion 5 16IAX10 (83NX) |
+| CPU / RAM | Intel Core Ultra 9 275HX (24C/24T) / 32 GB |
+| GPU | NVIDIA RTX 5060 Laptop 8 GB (Blackwell, sm_120) + Intel iGPU |
+| Disk | WD SN7100S 1 TB |
+| OS | Windows 11 Home 26200 + WSL2 Ubuntu 22.04.5 |
+| Camera | **Intel RealSense D455** (`8086:0b5c`), USB 3.0 root hub port 6 |
+
+### Camera — D455 into WSL2
+
+WSL2 cannot see USB devices directly, so the D455 is forwarded with
+**usbipd-win** (`C:\Program Files\usbipd-win`). One-time, in an **elevated**
+PowerShell:
+
+```powershell
+& "C:\Program Files\usbipd-win\usbipd.exe" bind --busid 1-6
+```
+
+After every reboot or re-plug (no admin needed), from WSL:
+
+```bash
+bash scripts/realsense-wsl.sh      # attaches busid 1-6 and loads vhci-hcd
+```
+
+The busid is not stable across USB ports. If `1-6` stops resolving, run
+`usbipd list` on Windows and match on `8086:0b5c`.
+
+### Vision default camera
+
+`Astro_dog/vision/laptops.json` maps hostname → camera. `LEGION_A` resolves to:
+
+```
+RealSense first device 1280x720@30fps HFOV 87deg
+```
+
+so the vision tools need no arguments:
+
+```bash
+cd /mnt/c/Robotics/Astro_dog/vision
+.venv/bin/python cam_record.py realsense --probe
+.venv/bin/python identity_live.py                 # http://localhost:8099/
+```
+
+Build that venv from scratch (idempotent, ~6.7 GB) with:
+
+```bash
+bash scripts/setup-vision.sh
+```
+
+It ends by creating a real CUDA `InferenceSession` and failing loudly if the
+RTX 5060 is not actually used — the provider list alone is not proof.
+
+`--camera` still accepts `realsense[:serial]`, `usb:/dev/videoN`, or a device
+index, and `$ASTRO_VISION_CAMERA` overrides the profile for one shell.
+
 ## Build
 
 From a WSL shell:
