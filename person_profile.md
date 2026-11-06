@@ -11,7 +11,7 @@ Do not infer personal identity from account names, camera images, or face detect
 ## Identity
 
 - Preferred name: not yet provided.
-- Face enrollment name: not yet provided.
+- Face enrollment name: **Aidyn**.
 
 ## Development preferences
 
@@ -23,7 +23,7 @@ Do not infer personal identity from account names, camera images, or face detect
   environment, GPU dependencies, model weights, laptop configuration, and docs.
 - Default camera: **Intel RealSense D455** through `pyrealsense2`.
 - Desired capture mode: **1280 × 720 at 30 fps**.
-- Current preferred browser display size: **800 × 450**, responsive on smaller
+- Current preferred browser display size: **1280 × 720**, responsive on smaller
   screens. This changes display size, not capture resolution.
 
 ## Project boundaries
@@ -43,8 +43,9 @@ Verified on 2026-11-01; recheck live state rather than assuming it persists:
 - InsightFace initialized on CUDA using the RTX 5060 Laptop GPU.
 - Vision environment: `Astro_dog/vision/.venv`.
 - Live view address: `http://localhost:8099/` when the app is running.
-- The last checked face gallery was empty; detection is not evidence of a
-  person's identity, and enrollment has not been completed on this laptop.
+- On 2026-11-02, Aidyn enrolled 25 face views, including side-view attempts,
+  on this laptop. Detection or a
+  face match is not conclusive evidence of a person's identity.
 - USB busids and process IDs are temporary state, not preferences. Discover the
   camera with `bash scripts/realsense-wsl.sh` rather than assuming a fixed port.
 

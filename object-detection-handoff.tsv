@@ -1,0 +1,40 @@
+Section	Topic	Details
+Purpose	Goal	Improve live object detection, especially the seven Other classes; operator reports closed books and toothbrushes are not reliably detected.
+Purpose	Status	Open Images V7 fine-tuning has been discussed but no dataset has been downloaded or model trained for this work.
+Environment	Workspace	C:\Robotics; project: C:\Robotics\Astro_dog\vision
+Environment	Laptop	LEGION_A, Lenovo Legion 5; NVIDIA RTX 5060 Laptop GPU with 8 GB VRAM.
+Environment	Software	WSL2 Ubuntu 22.04; Python environment Astro_dog/vision/.venv; Ultralytics 8.4.197; PyTorch 2.11.0+cu128; CUDA available when last checked.
+Camera	Hardware	Intel RealSense D455 colour stream via pyrealsense2; profile 1280x720 at 30 fps; horizontal FOV 87 degrees.
+Camera	Attachment	Use bash scripts/realsense-wsl.sh from WSL; USB bus IDs change. USB 3.2 was needed for reliable frame capture.
+Camera	Measured capture	Camera-only test captured 298 frames in 10 seconds with zero read failures; recheck current state.
+Model	Current	YOLO11n Detect, Astro_dog/vision/yolo11n.pt, COCO-pretrained with 80 classes; GPU device 0 by default.
+Model	Alternative	YOLO26n Detect, Astro_dog/vision/yolo26n.pt, downloaded and live-stream tested; operator requested returning to YOLO11n. No controlled model comparison has been completed.
+Model	Threshold	Object confidence is hardcoded at 0.40 in Pipeline.process() in identity_live.py. Lowering it can show weaker predictions but can also increase false positives; it does not retrain the model.
+Model	Face threshold	The --threshold CLI argument controls face matching, not YOLO object confidence.
+Other classes	73	Book
+Other classes	74	Clock
+Other classes	75	Vase
+Other classes	76	Scissors
+Other classes	77	Teddy bear
+Other classes	78	Hair dryer
+Other classes	79	Toothbrush; this is not a generic brush class.
+Other classes	Open Images mapping	Open Images boxable class list includes matching names for all seven; verify annotation semantics and map to the existing COCO IDs.
+Application	Main file	Astro_dog/vision/identity_live.py
+Application	Browser controls	Astro_dog/vision/vision_controls.html; live view http://localhost:8099/ when running; responsive display up to 1280x720.
+Application	Pipeline	D455 colour frame -> YOLO object/person detection -> face identification for person boxes -> annotated JPEG -> MJPEG browser stream.
+Application	Display controls	Individual classes, groups and All categories checkbox affect boxes and labels only; they do not stop inference. Settings are shared among viewers and reset at restart.
+Application	Endpoints	GET / serves UI; GET /stream serves MJPEG; GET /settings reads classes and selection; POST /settings updates the selection.
+Application	Face identity	InsightFace is separate from object detection; CUDA used when available. Default face step every five frames with box-overlap identity caching. Preserve private face gallery.
+Application	LiDAR	Optional fusion support exists; default laptop live run has LiDAR fusion off.
+Performance	Live pipeline	Observed logs have varied roughly 12 to 30 fps; camera capture, inference, face processing and streaming may all contribute. No controlled bottleneck comparison has been completed.
+Performance	Verification	After returning to YOLO11n, five 1280x720 MJPEG frames decoded and a startup log showed about 30 fps; this was not a sustained benchmark.
+Training plan	1	Select Open Images V7 images and bounding boxes for the seven target classes; verify class mapping and image licenses.
+Training plan	2	Convert annotations to YOLO format while preserving the existing COCO class IDs and accounting for non-exhaustive Open Images annotations.
+Training plan	3	Include representative correctly labeled COCO data across other classes to reduce regression; do not treat unlabeled objects as background without review.
+Training plan	4	With consent, add labeled D455 examples of closed books and toothbrushes under varied lighting, orientations and distances.
+Training plan	5	Train a separate checkpoint; preserve original YOLO11n and YOLO26n weights as fallbacks.
+Training plan	6	Evaluate on held-out images for per-class accuracy, missed detections, false positives and regressions across other classes; compare full live-pipeline speed before adoption.
+Repository	Working state	As last checked Astro_dog has modified vision/.gitignore and vision/identity_live.py plus untracked vision/vision_controls.html; preserve user work and recheck status.
+Repository	Runtime data	Model weights are local and gitignored; preserve private face gallery and runtime data; do not commit them without explicit authorization.
+Safety	Boundaries	Vision work is read-only with respect to the robot; no motion commands or deployment authority are implied.
+Safety	Instructions	Read C:\Robotics\person_profile.md and follow C:\Robotics\Astro_dog\AGENTS.md before work.
